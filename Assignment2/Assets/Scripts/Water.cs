@@ -12,7 +12,7 @@ public class Water : MonoBehaviour
     [Min(0.1f)] public float forceRadius = 3f;
     [Min(0)] public float waterForce = 20f;
     [Min(0)] public float waterDamping = 0.2f;
-    [Min(0)] public float boundaryForce = 0.2f;
+    [Min(0)] public float collidersThickness = 0.5f;
 
     NativeArray<float2> velocities, positions, newVelocities, newPositions, collidersPoints;
     private NativeArray<int> collidersPointsNum;
@@ -111,10 +111,10 @@ public class Water : MonoBehaviour
             forceRadius = forceRadius,
             waterForce = waterForce,
             waterDamping = waterDamping,
-            boundaryForce = boundaryForce,
 
             colliders = collidersPointsNum,
             colliderPoints = collidersPoints,
+            collidersThickness = collidersThickness,
 
             gridSizeX = gridSize.x,
             gridSizeY = gridSize.y,
@@ -257,22 +257,28 @@ public class Water : MonoBehaviour
 
         [ReadOnly] public NativeArray<int> colliders;
         [ReadOnly] public NativeArray<float2> colliderPoints;
+        [ReadOnly] public float collidersThickness;
 
-        public static float3 FindClosestDelta(float2 to, float2 p0, float2 p1) {
+        private static float3 FindClosestPoint(float2 to, float2 p0, float2 p1) {
             var edge = p1 - p0;
             var edgeDir = math.normalize(edge);
             var p0to = to - p0;
             var p1to = to - p1;
 
             if (math.mul(p1to, edge) >= 0) // p1 is closest
-                return new float3(p1to.x, p1to.y, math.length(p1to));
+                return new float3(p1.x, p1.y, math.length(p1to));
             var p0toProjectedToEdge = math.mul(p0to, edgeDir);
             if (p0toProjectedToEdge < 0) // p0 is closest
-                return new float3(p0to.x, p0to.y, math.length(p0to));
+                return new float3(p0.x, p0.y, math.length(p0to));
             var point = p0 + edgeDir * p0toProjectedToEdge;
             var delta = to - point;
-            
-            return new float3(delta.x, delta.y, math.length(delta));
+
+            return new float3(point.x, point.y, math.length(delta));
+        }
+
+        private static float2 IntersectionPointRays(float2 ao, float2 ad, float2 bo, float2 bd) {
+            var u = (ao.y * bd.x + bd.y * bo.x - bo.y * bd.x - bd.y * ao.x) / (ad.x * bd.y - ad.y * bd.x);
+            return ao + ad * u;
         }
 
         public void Execute(int i) {
@@ -294,46 +300,21 @@ public class Water : MonoBehaviour
                     var stored = grid[cellStart];
                     for (var _j = 1; _j <= stored; _j++) {
                         var j = grid[cellStart + _j];
-            
+
                         var otherPos = positions[j];
                         var deltaPos = otherPos - positions[i];
                         var distance = math.length(deltaPos);
                         if (distance <= 0 || distance > forceRadius) {
                             continue;
                         }
-            
+
                         var direction = -deltaPos / distance;
                         var forceAmount01 = math.clamp((forceRadius - distance) / forceRadius, 0, 1);
                         var force = (direction * math.pow(forceAmount01, 0.5f) * waterForce) * dt;
-            
+
                         totalForce += force;
                     }
                 }
-            }
-
-            var currentStart = 0;
-            for (var c = 0; c < colliders.Length; c++) {
-                var points = colliders[c];
-                for (var p = 1; p < points; p++) {
-                    var deltaAndDist = FindClosestDelta(
-                        positions[i],
-                        colliderPoints[currentStart + p - 1],
-                        colliderPoints[currentStart + p]
-                    );
-                    var delta = deltaAndDist.xy;
-                    var distance = deltaAndDist.z;
-                    
-                    if (distance == 0f || distance > forceRadius) {
-                        continue;
-                    }
-
-                    var deltaNorm = math.normalize(delta);
-                    var force = deltaNorm * math.abs(math.mul(deltaNorm, velocities[i]));
-
-                    totalForce = force;
-                }
-
-                currentStart += points;
             }
 
             var damping = velocities[i] * math.length(velocities[i]) * waterDamping * dt;
@@ -344,8 +325,42 @@ public class Water : MonoBehaviour
                 velocity.y = -positions[i].y / dt;
             }
 
+            var position = positions[i] + velocity * dt;
+
+            var currentStart = 0;
+            for (var c = 0; c < colliders.Length; c++) {
+                var points = colliders[c];
+                for (var p = 1; p < points; p++) {
+                    var p0 = colliderPoints[currentStart + p - 1];
+                    var p1 = colliderPoints[currentStart + p];
+                    var pointAndDist = FindClosestPoint(
+                        position,
+                        p0,
+                        p1
+                    );
+                    var point = pointAndDist.xy;
+                    var distance = pointAndDist.z;
+
+                    if (distance == 0f || distance >= collidersThickness) {
+                        continue;
+                    }
+
+                    var normal = math.normalize(position - point);
+
+                    position = IntersectionPointRays(
+                        point + normal * (collidersThickness + .01f),
+                        p1 - p0,
+                        position,
+                        velocity
+                    );
+                    velocity -= normal * math.dot(velocity, normal);
+                }
+
+                currentStart += points;
+            }
+
             newVelocities[i] = velocity;
-            newPositions[i] = positions[i] + velocity * dt;
+            newPositions[i] = position;
         }
     }
 }

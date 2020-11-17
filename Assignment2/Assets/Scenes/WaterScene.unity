@@ -154,10 +154,12 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: -0.4384215, y: 0.7340161}
+  - {x: -0.8366993, y: 1.3365395}
+  - {x: -0.8009971, y: 0.45653367}
   - {x: -0.3057105, y: 0}
   - {x: 0.30514848, y: 0}
-  - {x: 0.39654806, y: 0.72662663}
+  - {x: 0.7954117, y: 0.6279466}
+  - {x: 0.79482615, y: 1.3291496}
 --- !u!4 &101539097
 Transform:
   m_ObjectHideFlags: 0
@@ -205,8 +207,8 @@ MonoBehaviour:
   gravity: 8
   forceRadius: 0.1
   waterForce: 10
-  waterDamping: 0.2
-  boundaryForce: 0.2
+  waterDamping: 0.5
+  collidersThickness: 0.15
 --- !u!114 &782931168
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -220,9 +222,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   blobs:
-    x: 50
-    y: 50
-  blobSize: 0.2
+    x: 8
+    y: 40
+  blobSize: 0.05
   blobPrefab: {fileID: 2765129299647741531, guid: 5a0fc7eb619fc8117ac45c023177e1a2,
     type: 3}
 --- !u!4 &782931169
@@ -233,7 +235,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 782931166}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 3.66, z: -10}
+  m_LocalPosition: {x: -0.55, y: 2.61, z: -10}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}

@@ -19,7 +19,7 @@ public class WaterDisplay : MonoBehaviour
             for (var j = 0; j < blobs.y; j++) {
                 mBlobs.Add(Instantiate(
                     blobPrefab, transform.position
-                                + new Vector3(i * blobSize + Random.value * blobSize / 2, j * blobSize, 0f),
+                                + new Vector3(i * 2 * blobSize + Random.value * blobSize / 2, j * 2 * blobSize, 0f),
                     Quaternion.identity,
                     transform));
             }
@@ -29,6 +29,17 @@ public class WaterDisplay : MonoBehaviour
     public void UpdateDisplay(NativeArray<float2> positions) {
         for (var i = 0; i < positions.Length && i < mBlobs.Count; i++) {
             mBlobs[i].transform.position = new Vector3(positions[i].x, positions[i].y, 0);
+        }
+    }
+
+    private void OnDrawGizmos() {
+        if (Application.isPlaying) return;
+        for (var i = 0; i < blobs.x; i++) {
+            for (var j = 0; j < blobs.y; j++) {
+                var pos = transform.position 
+                          + new Vector3(i * 2 * blobSize, j * 2 * blobSize, 0f);
+                Gizmos.DrawSphere(pos, blobSize);
+            }
         }
     }
 }
