@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
@@ -16,6 +17,8 @@ public class Water : MonoBehaviour
 
     NativeArray<float2> velocities, positions, newVelocities, newPositions, collidersPoints;
     private NativeArray<int> collidersPointsNum;
+
+    private NativeArray<float2> _oldColliderPositions;
 
     private ushort xCells, yCells;
     private ushort cellSpace;
@@ -65,6 +68,7 @@ public class Water : MonoBehaviour
         }
 
         collidersPointsNum = new NativeArray<int>(_colliders.Length, Allocator.Persistent);
+        _oldColliderPositions = new NativeArray<float2>(_colliders.Length, Allocator.Persistent);
         collidersPoints = new NativeArray<float2>(collidersPointsCount, Allocator.Persistent);
         var collidersPointsAccumulated = 0;
         for (var c = 0; c < _colliders.Length; c++) {
@@ -72,8 +76,7 @@ public class Water : MonoBehaviour
             collidersPointsNum[c] = points;
             for (var i = 0; i < points; i++) {
                 var collider = _colliders[c];
-                var point = collider.transform
-                    .TransformPoint(new Vector3(collider.points[i].x, collider.points[i].y, 0));
+                var point = new Vector3(collider.points[i].x, collider.points[i].y, 0);
                 collidersPoints[collidersPointsAccumulated + i] = new float2(point.x, point.y);
             }
 
@@ -151,16 +154,32 @@ public class Water : MonoBehaviour
             .Schedule(positions.Length, 256)
             .Complete();
 
+        var colliderMovement = new NativeArray<float2>(_colliders.Length, Allocator.TempJob);
+        var accumulated = 0;
+        for (var i = 0; i < _colliders.Length; i++) {
+            float2 pos = ((float3) _colliders[i].transform.position).xy;
+            colliderMovement[i] = pos - _oldColliderPositions[i];
+            _oldColliderPositions[i] = pos;
+            for (var j = 0; j < collidersPointsNum[i]; j++) {
+                collidersPoints[accumulated + j] += colliderMovement[i];
+            }
+
+            accumulated += collidersPointsNum[i];
+        }
+
         _waterJob.dt = Time.fixedDeltaTime;
         _waterJob.velocities = velocities;
         _waterJob.positions = positions;
         _waterJob.newVelocities = newVelocities;
         _waterJob.newPositions = newPositions;
+        _waterJob.colliderMovement = colliderMovement;
         _waterJob
             .Schedule(positions.Length, 256)
             .Complete();
 
         _waterDisplayDisplay.UpdateDisplay(newPositions);
+
+        colliderMovement.Dispose();
 
         //Swap buffers for next frame:
         var tmpPositions = newPositions;
@@ -190,6 +209,9 @@ public class Water : MonoBehaviour
 
         if (collidersPointsNum.IsCreated)
             collidersPointsNum.Dispose();
+
+        if (_oldColliderPositions.IsCreated)
+            _oldColliderPositions.Dispose();
 
         grid.Dispose();
     }
@@ -257,6 +279,7 @@ public class Water : MonoBehaviour
 
         [ReadOnly] public NativeArray<int> colliders;
         [ReadOnly] public NativeArray<float2> colliderPoints;
+        [ReadOnly] public NativeArray<float2> colliderMovement;
         [ReadOnly] public float collidersThickness;
 
         private static float3 FindClosestPoint(float2 to, float2 p0, float2 p1) {
@@ -277,7 +300,9 @@ public class Water : MonoBehaviour
         }
 
         private static float2 IntersectionPointRays(float2 ao, float2 ad, float2 bo, float2 bd) {
-            var u = (ao.y * bd.x + bd.y * bo.x - bo.y * bd.x - bd.y * ao.x) / (ad.x * bd.y - ad.y * bd.x);
+            var denom = (ad.x * bd.y - ad.y * bd.x);
+            if (math.abs(denom) <= math.EPSILON) return new float2(math.NAN);
+            var u = (ao.y * bd.x + bd.y * bo.x - bo.y * bd.x - bd.y * ao.x) / denom;
             return ao + ad * u;
         }
 
@@ -330,6 +355,7 @@ public class Water : MonoBehaviour
             var currentStart = 0;
             for (var c = 0; c < colliders.Length; c++) {
                 var points = colliders[c];
+                var positionChange = colliderMovement[c];
                 for (var p = 1; p < points; p++) {
                     var p0 = colliderPoints[currentStart + p - 1];
                     var p1 = colliderPoints[currentStart + p];
@@ -347,13 +373,29 @@ public class Water : MonoBehaviour
 
                     var normal = math.normalize(position - point);
 
-                    position = IntersectionPointRays(
+                    var pointOutOfCollision = IntersectionPointRays(
                         point + normal * (collidersThickness + .01f),
                         p1 - p0,
                         position,
                         velocity
                     );
-                    velocity -= normal * math.dot(velocity, normal);
+                    if (!math.any(math.isnan(pointOutOfCollision))) {
+                        position = pointOutOfCollision + positionChange;
+                        velocity -= normal * math.dot(velocity, normal);
+
+                        // At least have the same velocity in each axis as the collider
+                        if (math.abs(positionChange.x) > math.EPSILON) {
+                            velocity.x = positionChange.x > 0
+                                ? math.max(velocity.x, positionChange.x / dt)
+                                : math.min(velocity.x, positionChange.x / dt);
+                        }
+
+                        if (math.abs(positionChange.y) > math.EPSILON) {
+                            velocity.y = positionChange.y > 0
+                                ? math.max(velocity.y, positionChange.y / dt)
+                                : math.min(velocity.y, positionChange.y / dt);
+                        }
+                    }
                 }
 
                 currentStart += points;
