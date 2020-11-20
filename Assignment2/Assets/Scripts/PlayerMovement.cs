@@ -7,6 +7,7 @@ public class PlayerMovement : MonoBehaviour {
 	public GameObject playerGoLeftSprite;
 	public SpriteRenderer playerDeathSprite;
 
+
 	private float playerSidewaysForce = 1000f;
 	private float playerUpwardsForce = 300f;
 
@@ -17,7 +18,8 @@ public class PlayerMovement : MonoBehaviour {
 	private KeyCode leftKey = KeyCode.A;
 	private KeyCode rightKey = KeyCode.D;
 	private KeyCode jumpKey = KeyCode.Space;
-
+	
+	public GameManagerScript gameManager;
 	private Rigidbody2D playerRigidBody;
 	private bool isDead = false;
 
@@ -25,12 +27,13 @@ public class PlayerMovement : MonoBehaviour {
     // Start is called before the first frame update
     void Start(){
         playerRigidBody = transform.GetComponent<Rigidbody2D>();
+		gameManager = FindObjectOfType<GameManagerScript>();
     }
 
 
     void Update(){
 
-		if(isDead) return;
+		if(!gameManager.IsGameAlive()) return;
 
 		if(Input.GetKey(leftKey)){
 			if(!Input.GetKey(rightKey)){
@@ -64,10 +67,13 @@ public class PlayerMovement : MonoBehaviour {
 	}
 
 	public void Die(){
-		isDead = true;
-		playerGoLeftSprite.SetActive(false);
-		playerGoRightSprite.SetActive(false);
-		playerDeathSprite.enabled = true;
+		if(!isDead){
+			isDead = true;
+			playerGoLeftSprite.SetActive(false);
+			playerGoRightSprite.SetActive(false);
+			playerDeathSprite.enabled = true;
+			gameManager.SetGameOver();
+		}
 	}
 
 }
