@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 2765129299647741535}
   - component: {fileID: 2765129299647741528}
   - component: {fileID: 2765129299647741529}
-  m_Layer: 0
+  m_Layer: 4
   m_Name: WaterBlob
   m_TagString: Untagged
   m_Icon: {fileID: 0}

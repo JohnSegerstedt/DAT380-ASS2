@@ -5,15 +5,17 @@ using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Serialization;
+using Random = UnityEngine.Random;
 
 [RequireComponent(typeof(WaterDisplay))]
 public class Water : MonoBehaviour
 {
     [Min(0)] public float gravity = 8;
-    [Min(0.1f)] public float forceRadius = 3f;
-    [Min(0)] public float waterForce = 20f;
-    [Min(0)] public float waterDamping = 0.2f;
-    [Min(0)] public float collidersThickness = 0.5f;
+    [Min(0.1f)] public float forceRadius = 0.1f;
+    [Min(0)] public float waterForce = 10f;
+    [Min(0)] public float waterDamping = 0.5f;
+    [Min(0)] public float ballSize = 0.1f;
 
     NativeArray<float2> velocities, positions, newVelocities, newPositions, collidersPoints;
     private NativeArray<int> collidersPointsNum;
@@ -28,6 +30,7 @@ public class Water : MonoBehaviour
 
     private WaterDisplay _waterDisplayDisplay;
     private EdgeCollider2D[] _colliders;
+    private NativeArray<uint> hasCollided;
 
     private WaterJob _waterJob;
     private SortJob _sortJob;
@@ -42,6 +45,7 @@ public class Water : MonoBehaviour
         positions = new NativeArray<float2>(waterBlobsNum, Allocator.Persistent);
         newVelocities = new NativeArray<float2>(waterBlobsNum, Allocator.Persistent);
         newPositions = new NativeArray<float2>(waterBlobsNum, Allocator.Persistent);
+        hasCollided = new NativeArray<uint>(waterBlobsNum, Allocator.Persistent);
 
         cellSide = forceRadius;
         var cameraWidth = Camera.main.orthographicSize * 2;
@@ -117,7 +121,9 @@ public class Water : MonoBehaviour
 
             colliders = collidersPointsNum,
             colliderPoints = collidersPoints,
-            collidersThickness = collidersThickness,
+            ballSize = ballSize,
+
+            hasCollided = hasCollided,
 
             gridSizeX = gridSize.x,
             gridSizeY = gridSize.y,
@@ -177,6 +183,11 @@ public class Water : MonoBehaviour
             .Schedule(positions.Length, 256)
             .Complete();
 
+        for (var i = 0; i < positions.Length; i++) {
+            Debug.DrawLine(new float3(positions[i], 0), new float3(newPositions[i], 0),
+                new Color[] {Color.red, Color.yellow, Color.green, Color.blue}[hasCollided[i]]);
+        }
+
         _waterDisplayDisplay.UpdateDisplay(newPositions);
 
         colliderMovement.Dispose();
@@ -212,6 +223,9 @@ public class Water : MonoBehaviour
 
         if (_oldColliderPositions.IsCreated)
             _oldColliderPositions.Dispose();
+
+        if (hasCollided.IsCreated)
+            hasCollided.Dispose();
 
         grid.Dispose();
     }
@@ -270,17 +284,59 @@ public class Water : MonoBehaviour
         [ReadOnly] public NativeArray<int> grid;
 
         [ReadOnly] public NativeArray<float2> velocities;
-
         [ReadOnly] public NativeArray<float2> positions;
 
         [WriteOnly] public NativeArray<float2> newVelocities;
-
+        public NativeArray<uint> hasCollided;
         [WriteOnly] public NativeArray<float2> newPositions;
 
         [ReadOnly] public NativeArray<int> colliders;
         [ReadOnly] public NativeArray<float2> colliderPoints;
         [ReadOnly] public NativeArray<float2> colliderMovement;
-        [ReadOnly] public float collidersThickness;
+        [ReadOnly] public float ballSize;
+
+        // Determines if the lines AB and CD intersect.
+        static float2 SegmentsIntersect(float2 colliderA, float2 colliderB, float2 blobA, float2 blobB) {
+            var CmP = blobA - colliderA;
+            var r = colliderB - colliderA;
+            var s = blobB - blobA;
+
+            var CmPxr = CmP.x * r.y - CmP.y * r.x;
+            var CmPxs = CmP.x * s.y - CmP.y * s.x;
+            var rxs = r.x * s.y - r.y * s.x;
+
+            if (math.abs(CmPxr) <= math.EPSILON) {
+                // Lines are collinear
+                if (math.dot(blobA - colliderA, blobA - colliderB) <= math.EPSILON) {
+                    // blobA inside colliderA->colliderB
+                    return blobA;
+                }
+
+                if (math.mul(CmP, colliderA - blobB) <= math.EPSILON) {
+                    // colliderA inside blobA->blobB
+                    if (math.dot(CmP, r) < 0f) {
+                        return colliderA;
+                    }
+                    return colliderB;
+                }
+                
+                // no collision, just in line
+                return math.NAN;
+            }
+
+            if (math.abs(rxs) <= math.EPSILON)
+                return math.NAN; // Lines are parallel.
+
+            var rxsr = 1f / rxs;
+            var t = CmPxs * rxsr;
+            var u = CmPxr * rxsr;
+
+            if ((t > -math.EPSILON) && (t <= 1f + math.EPSILON) && (u >= -math.EPSILON) && (u <= 1f + math.EPSILON)) {
+                return colliderA + t * r;
+            }
+
+            return math.NAN;
+        }
 
         private static float3 FindClosestPoint(float2 to, float2 p0, float2 p1) {
             var edge = p1 - p0;
@@ -351,51 +407,38 @@ public class Water : MonoBehaviour
             }
 
             var position = positions[i] + velocity * dt;
+            var newPosition = position;
+            var oldPosition = positions[i];
 
             var currentStart = 0;
+            hasCollided[i] = 0;
             for (var c = 0; c < colliders.Length; c++) {
                 var points = colliders[c];
                 var positionChange = colliderMovement[c];
                 for (var p = 1; p < points; p++) {
                     var p0 = colliderPoints[currentStart + p - 1];
                     var p1 = colliderPoints[currentStart + p];
-                    var pointAndDist = FindClosestPoint(
-                        position,
-                        p0,
-                        p1
-                    );
-                    var point = pointAndDist.xy;
-                    var distance = pointAndDist.z;
 
-                    if (distance == 0f || distance >= collidersThickness) {
+                    var dir = math.normalize(newPosition - oldPosition);
+                    var prevPos = oldPosition - dir * ballSize * 0.5f;
+                    var newPos = newPosition + dir * ballSize * 0.5f;
+                    var intersection = SegmentsIntersect(
+                        p0, p1, prevPos, newPos);
+
+                    if (math.any(math.isnan(intersection)))
                         continue;
-                    }
 
-                    var normal = math.normalize(position - point);
+                    hasCollided[i]++;
+                    var fromIntersectionToNew = newPos - intersection;
+                    var edgeDir = p1 - p0;
+                    var normal = new float2(edgeDir.y, -edgeDir.x);
+                    if (math.dot(normal, fromIntersectionToNew) < 0)
+                        normal *= -1f;
+                    normal = math.normalize(normal);
+                    var pointOutOfCollision = intersection - normal * ballSize;
 
-                    var pointOutOfCollision = IntersectionPointRays(
-                        point + normal * (collidersThickness + .01f),
-                        p1 - p0,
-                        position,
-                        velocity
-                    );
-                    if (!math.any(math.isnan(pointOutOfCollision))) {
-                        position = pointOutOfCollision + positionChange;
-                        velocity -= normal * math.dot(velocity, normal);
-
-                        // At least have the same velocity in each axis as the collider
-                        if (math.abs(positionChange.x) > math.EPSILON) {
-                            velocity.x = positionChange.x > 0
-                                ? math.max(velocity.x, positionChange.x / dt)
-                                : math.min(velocity.x, positionChange.x / dt);
-                        }
-
-                        if (math.abs(positionChange.y) > math.EPSILON) {
-                            velocity.y = positionChange.y > 0
-                                ? math.max(velocity.y, positionChange.y / dt)
-                                : math.min(velocity.y, positionChange.y / dt);
-                        }
-                    }
+                    position = pointOutOfCollision;
+                    velocity -= normal * math.dot(velocity, normal);
                 }
 
                 currentStart += points;
