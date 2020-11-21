@@ -4,8 +4,10 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-public class GameManagerScript : MonoBehaviour{
-
+public class GameManagerScript : MonoBehaviour
+{
+	public WaterCounter waterCounter;
+	
 	public GameObject gameOverUI;
 	public GameObject levelCompleteUI;
 	
@@ -47,6 +49,12 @@ public class GameManagerScript : MonoBehaviour{
 
 	public void SetLevelComplete(){
 		gameAlive = false;
+		var score = waterCounter.GetPercentageInside();
+		var text = $"Your score: {score:000}";
+		var scoreText = levelCompleteUI.transform.Find("Score").GetComponent<Text>();
+		var shadowText = levelCompleteUI.transform.Find("ScoreShadow").GetComponent<Text>();
+		scoreText.text = text;
+		shadowText.text = text;
 		levelCompleteUI.SetActive(true);
 	}
 
