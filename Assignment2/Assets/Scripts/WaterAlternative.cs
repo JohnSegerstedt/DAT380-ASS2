@@ -206,7 +206,6 @@ public struct ColliderInteraction : IJobParallelFor
     [ReadOnly] public NativeArray<int> colliders;
     [ReadOnly] public NativeArray<float2> colliderPoints;
     [ReadOnly] public NativeArray<float2> colliderTranslation;
-    [ReadOnly] public float ballSize;
 
     // Determines if the lines AB and CD intersect.
     static float2 SegmentsIntersect(float2 colliderA, float2 colliderB, float2 blobA, float2 blobB) {
@@ -297,8 +296,8 @@ public struct ColliderInteraction : IJobParallelFor
             if (math.dot(normal, fromIntersectionToNew) < 0)
                 normal *= -1f;
             normal = math.normalize(normal);
-            var pointOutOfCollision = firstIntersection - normal * ballSize * .5f;
-            var vel = normal * math.dot(new float2(waterState.vx[i], waterState.vy[i]), normal);
+            var pointOutOfCollision = firstIntersection - normal * 0.01f;
+            var vel = normal * math.dot(new float2(waterState.vx[i], waterState.vy[i]), normal) * 1.2f;
 
             waterState.x[i] = pointOutOfCollision.x;
             waterState.y[i] = pointOutOfCollision.y;
@@ -329,7 +328,6 @@ public class WaterAlternative : MonoBehaviour
 
     private EdgeCollider2D[] colliders;
 
-    public float ballSize;
     public float interactionRadius;
     public float2 gravity;
     public float stiffness;
@@ -427,8 +425,7 @@ public class WaterAlternative : MonoBehaviour
         colliderInteraction = new ColliderInteraction() {
             waterState = waterState,
             colliders = collidersPointsNum,
-            colliderPoints = collidersPoints,
-            ballSize = ballSize
+            colliderPoints = collidersPoints
         };
     }
 
