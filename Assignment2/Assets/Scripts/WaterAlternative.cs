@@ -148,7 +148,7 @@ public struct ApplyRelaxation : IJobParallelFor
 
     [ReadOnly] public GridInfo gridInfo;
     [ReadOnly] public NativeArray<int> grid;
-    
+
     public void Execute(int i) {
         var gridX = (int) math.floor((waterState.x[i] + gridInfo.halfXSize) / gridInfo.cellSide);
         var gridY = (int) math.floor((waterState.y[i] + gridInfo.halfYSize) / gridInfo.cellSide);
@@ -160,7 +160,7 @@ public struct ApplyRelaxation : IJobParallelFor
         var endY = math.clamp(gridY + 1, 0, gridInfo.yCells - 1);
 
         var position = new float2(waterState.x[i], waterState.y[i]);
-        
+
         // Apply relaxation
         for (var x = startX; x <= endX; x++) {
             for (var y = startY; y <= endY; y++) {
@@ -202,7 +202,7 @@ public struct ApplyRelaxation : IJobParallelFor
 public struct ColliderInteraction : IJobParallelFor
 {
     public WaterState waterState;
-    
+
     [ReadOnly] public NativeArray<int> colliders;
     [ReadOnly] public NativeArray<float2> colliderPoints;
     [ReadOnly] public NativeArray<float2> colliderTranslation;
@@ -299,7 +299,7 @@ public struct ColliderInteraction : IJobParallelFor
             normal = math.normalize(normal);
             var pointOutOfCollision = firstIntersection - normal * ballSize * .5f;
             var vel = normal * math.dot(new float2(waterState.vx[i], waterState.vy[i]), normal);
-            
+
             waterState.x[i] = pointOutOfCollision.x;
             waterState.y[i] = pointOutOfCollision.y;
             waterState.vx[i] -= vel.x;
@@ -312,7 +312,7 @@ public class WaterAlternative : MonoBehaviour
 {
     private WaterState waterState;
     private GridInfo gridInfo;
-    
+
     private UpdateParticles updateParticles;
     private GridSort gridSort;
     private UpdatePressures updatePressures;
@@ -328,13 +328,15 @@ public class WaterAlternative : MonoBehaviour
     private NativeArray<int> grid;
 
     private EdgeCollider2D[] colliders;
-    
+
     public float ballSize;
     public float interactionRadius;
     public float2 gravity;
     public float stiffness;
     public float stiffnessNear;
     public float restDensity;
+
+    public Vector2 gridHalfSize;
 
     void Start() {
         waterDisplay = GetComponent<WaterDisplay>();
@@ -353,9 +355,7 @@ public class WaterAlternative : MonoBehaviour
             pNear = new NativeArray<float>(waterBlobsNum, Allocator.Persistent)
         };
 
-        var cameraWidth = Camera.main.orthographicSize * 2;
-        var cameraHeight = cameraWidth / Camera.main.aspect;
-        var gridSize = new Vector2(cameraWidth, cameraHeight);
+        var gridSize = 2 * gridHalfSize;
         var cellSide = interactionRadius;
         gridInfo = new GridInfo() {
             cellSide = cellSide,
@@ -444,6 +444,27 @@ public class WaterAlternative : MonoBehaviour
 
             startNum += points;
         }
+
+        Debug.DrawLine(
+            new Vector3(-gridInfo.halfXSize, -gridInfo.halfYSize, 0),
+            new Vector3(-gridInfo.halfXSize, gridInfo.halfYSize, 0),
+            Color.green
+        );
+        Debug.DrawLine(
+            new Vector3(-gridInfo.halfXSize, gridInfo.halfYSize, 0),
+            new Vector3(gridInfo.halfXSize, gridInfo.halfYSize, 0),
+            Color.green
+            );
+        Debug.DrawLine(
+            new Vector3(gridInfo.halfXSize, gridInfo.halfYSize, 0),
+            new Vector3(gridInfo.halfXSize, -gridInfo.halfYSize, 0),
+            Color.green
+        );
+        Debug.DrawLine(
+            new Vector3(gridInfo.halfXSize, -gridInfo.halfYSize, 0),
+            new Vector3(-gridInfo.halfXSize, -gridInfo.halfYSize, 0),
+            Color.green
+        );
     }
 
     private void FixedUpdate() {
@@ -477,7 +498,7 @@ public class WaterAlternative : MonoBehaviour
         updatePressures.Schedule(waterState.x.Length, 256).Complete();
         applyRelaxation.Schedule(waterState.x.Length, 256).Complete();
         colliderInteraction.Schedule(waterState.x.Length, 256).Complete();
-        
+
         colliderMovement.Dispose();
         waterDisplay.UpdateDisplay(waterState.x, waterState.y);
     }
@@ -490,7 +511,7 @@ public class WaterAlternative : MonoBehaviour
             }
         }
     }
-    
+
     private void OnDestroy() {
         waterState.Dispose();
         if (grid.IsCreated) grid.Dispose();
@@ -502,6 +523,5 @@ public class WaterAlternative : MonoBehaviour
 
         if (oldColliderPositions.IsCreated)
             oldColliderPositions.Dispose();
-
     }
 }

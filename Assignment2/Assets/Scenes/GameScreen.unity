@@ -3205,8 +3205,9 @@ MonoBehaviour:
     x: 0
     y: -4
   stiffness: 5
-  stiffnessNear: 1
-  restDensity: 0.5
+  stiffnessNear: 5
+  restDensity: 0.2
+  gridHalfSize: {x: 9, y: 5}
 --- !u!114 &1894555975
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3629,7 +3630,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2117902321}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: -0.02, y: -0.13, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
