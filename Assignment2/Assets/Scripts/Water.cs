@@ -378,10 +378,10 @@ public class Water : MonoBehaviour
             var damping = velocities[i] * math.length(velocities[i]) * waterDamping * dt;
             var velocity = velocities[i] + totalForce - damping;
 
-            // Contain above Y 0
-            if (positions[i].y < 0) {
-                velocity.y = -positions[i].y / dt;
-            }
+            // Contain above Y value something
+            // if (positions[i].y < -4) {
+            //     velocity.y = -(positions[i].y + 4) / dt;
+            // }
 
             position += velocity * dt;
             var oldPosition = positions[i];
