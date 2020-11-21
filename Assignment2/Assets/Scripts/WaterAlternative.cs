@@ -174,7 +174,7 @@ public struct ApplyRelaxation : IJobParallelFor
                     var nPos = new float2(waterState.x[n], waterState.y[n]);
 
                     var lsq = math.distancesq(nPos, position);
-                    if (lsq > interactionRadiusSq) continue;
+                    if (lsq > interactionRadiusSq || lsq == 0) continue;
 
                     var g = 1 - math.sqrt(lsq) / interactionRadius;
 
@@ -183,6 +183,10 @@ public struct ApplyRelaxation : IJobParallelFor
                     var direction = math.normalize(nPos - position);
                     var force = direction * magnitude;
                     var d = force * (dt * dt);
+
+                    // if (math.any(math.isnan(d))) {
+                    //     Debug.Log($"Found nan! {d} {force} {direction} {magnitude} {g} {lsq}");
+                    // }
 
                     waterState.x[i] += d.x * -.5f;
                     waterState.y[i] += d.y * -.5f;
@@ -478,6 +482,15 @@ public class WaterAlternative : MonoBehaviour
         waterDisplay.UpdateDisplay(waterState.x, waterState.y);
     }
 
+    private void CheckNans() {
+        for (var i = 0; i < waterState.x.Length; i++) {
+            if (math.isnan(waterState.x[i])) {
+                Debug.Log("NANS here first!");
+                break;
+            }
+        }
+    }
+    
     private void OnDestroy() {
         waterState.Dispose();
         if (grid.IsCreated) grid.Dispose();

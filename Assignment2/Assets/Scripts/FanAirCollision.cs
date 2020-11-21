@@ -11,7 +11,6 @@ public class FanAirCollision: MonoBehaviour{
 	private void Start() {
 		float rotation = GetComponentInParent<Transform>().rotation.eulerAngles.z;
 		direction = new Vector2((float) -Math.Cos(rotation*Mathf.PI/180f), (float) -Math.Sin(rotation*Mathf.PI/180f));
-		Debug.Log(direction);
 	}
 	
 
