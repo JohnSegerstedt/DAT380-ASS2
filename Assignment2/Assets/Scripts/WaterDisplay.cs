@@ -32,6 +32,13 @@ public class WaterDisplay : MonoBehaviour
             mBlobs[i].transform.position = new Vector3(positions[i].x, positions[i].y, prev.z);
         }
     }
+    
+    public void UpdateDisplay(NativeArray<float> x, NativeArray<float> y) {
+        for (var i = 0; i < x.Length && i < mBlobs.Count; i++) {
+            var prev = mBlobs[i].transform.position;
+            mBlobs[i].transform.position = new Vector3(x[i], y[i], prev.z);
+        }
+    }
 
     private void OnDrawGizmos() {
         if (Application.isPlaying) return;

@@ -1,12 +1,8 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using Unity.Burst;
+﻿using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.Serialization;
-using Random = UnityEngine.Random;
 
 [RequireComponent(typeof(WaterDisplay))]
 public class Water : MonoBehaviour
@@ -28,7 +24,7 @@ public class Water : MonoBehaviour
     private Vector2 gridSize;
     private NativeArray<int> grid;
 
-    private WaterDisplay _waterDisplayDisplay;
+    private WaterDisplay _waterDisplay;
     private EdgeCollider2D[] _colliders;
     private NativeArray<uint> hasCollided;
 
@@ -36,10 +32,10 @@ public class Water : MonoBehaviour
     private SortJob _sortJob;
 
     private void Start() {
-        _waterDisplayDisplay = GetComponent<WaterDisplay>();
+        _waterDisplay = GetComponent<WaterDisplay>();
         _colliders = FindObjectsOfType<EdgeCollider2D>();
-        var blobs = _waterDisplayDisplay.Blobs;
-        var waterBlobsNum = blobs.Count();
+        var blobs = _waterDisplay.Blobs;
+        var waterBlobsNum = blobs.Count;
 
         velocities = new NativeArray<float2>(waterBlobsNum, Allocator.Persistent);
         positions = new NativeArray<float2>(waterBlobsNum, Allocator.Persistent);
@@ -188,7 +184,7 @@ public class Water : MonoBehaviour
                 new Color[] {Color.red, Color.yellow, Color.green, Color.blue}[hasCollided[i]]);
         }
 
-        _waterDisplayDisplay.UpdateDisplay(newPositions);
+        _waterDisplay.UpdateDisplay(newPositions);
 
         colliderMovement.Dispose();
 
@@ -227,7 +223,7 @@ public class Water : MonoBehaviour
         if (hasCollided.IsCreated)
             hasCollided.Dispose();
 
-        grid.Dispose();
+        if (grid.IsCreated) grid.Dispose();
     }
 
     [BurstCompile(CompileSynchronously = true)]
@@ -360,6 +356,8 @@ public class Water : MonoBehaviour
                     for (var _j = 1; _j <= stored; _j++) {
                         var j = grid[cellStart + _j];
 
+                        if (i == j) continue;
+
                         var otherPos = positions[j];
                         var deltaPos = otherPos - positions[i];
                         var distance = math.length(deltaPos);
@@ -369,11 +367,7 @@ public class Water : MonoBehaviour
                         
                         var direction = -deltaPos / distance;
                         
-                        if (distance < forceRadius * 0.25) {
-                            position -= direction * forceRadius * 0.25f;
-                        }
-                        
-                        var forceAmount01 = math.clamp((forceRadius - distance) / forceRadius, 0, 1);
+                        var forceAmount01 = math.clamp(((forceRadius * 0.8f) - distance) / (forceRadius * 0.8f), -1, 1);
                         var force = (direction * forceAmount01 * waterForce) * dt;
 
                         totalForce += force;
@@ -437,7 +431,7 @@ public class Water : MonoBehaviour
                 var pointOutOfCollision = firstIntersection - normal * ballSize * .5f;
 
                 position = pointOutOfCollision;
-                velocity -= normal * math.dot(velocity, normal);
+                velocity -= normal * math.dot(velocity, normal) * 1.1f;
             }
 
             newVelocities[i] = velocity;
