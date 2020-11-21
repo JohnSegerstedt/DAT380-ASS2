@@ -12,7 +12,7 @@ using Random = UnityEngine.Random;
 public class Water : MonoBehaviour
 {
     [Min(0)] public float gravity = 8;
-    [Min(0.1f)] public float forceRadius = 0.1f;
+    [Min(0.05f)] public float forceRadius = 0.1f;
     [Min(0)] public float waterForce = 10f;
     [Min(0)] public float waterDamping = 0.5f;
     [Min(0)] public float ballSize = 0.1f;
@@ -178,7 +178,7 @@ public class Water : MonoBehaviour
         _waterJob.positions = positions;
         _waterJob.newVelocities = newVelocities;
         _waterJob.newPositions = newPositions;
-        _waterJob.colliderMovement = colliderMovement;
+        _waterJob.colliderTranslation = colliderMovement;
         _waterJob
             .Schedule(positions.Length, 256)
             .Complete();
@@ -292,7 +292,7 @@ public class Water : MonoBehaviour
 
         [ReadOnly] public NativeArray<int> colliders;
         [ReadOnly] public NativeArray<float2> colliderPoints;
-        [ReadOnly] public NativeArray<float2> colliderMovement;
+        [ReadOnly] public NativeArray<float2> colliderTranslation;
         [ReadOnly] public float ballSize;
 
         // Determines if the lines AB and CD intersect.
@@ -307,19 +307,20 @@ public class Water : MonoBehaviour
 
             if (math.abs(CmPxr) <= math.EPSILON) {
                 // Lines are collinear
-                if (math.dot(blobA - colliderA, blobA - colliderB) <= math.EPSILON) {
+                if (math.dot(blobA - colliderA, blobA - colliderB) < math.EPSILON) {
                     // blobA inside colliderA->colliderB
                     return blobA;
                 }
 
-                if (math.mul(CmP, colliderA - blobB) <= math.EPSILON) {
+                if (math.mul(CmP, colliderA - blobB) < math.EPSILON) {
                     // colliderA inside blobA->blobB
                     if (math.dot(CmP, r) < 0f) {
                         return colliderA;
                     }
+
                     return colliderB;
                 }
-                
+
                 // no collision, just in line
                 return math.NAN;
             }
@@ -331,39 +332,16 @@ public class Water : MonoBehaviour
             var t = CmPxs * rxsr;
             var u = CmPxr * rxsr;
 
-            if ((t > -math.EPSILON) && (t <= 1f + math.EPSILON) && (u >= -math.EPSILON) && (u <= 1f + math.EPSILON)) {
+            if ((t > -math.EPSILON) && (t < 1f + math.EPSILON) && (u > -math.EPSILON) && (u < 1f + math.EPSILON)) {
                 return colliderA + t * r;
             }
 
             return math.NAN;
         }
 
-        private static float3 FindClosestPoint(float2 to, float2 p0, float2 p1) {
-            var edge = p1 - p0;
-            var edgeDir = math.normalize(edge);
-            var p0to = to - p0;
-            var p1to = to - p1;
-
-            if (math.mul(p1to, edge) >= 0) // p1 is closest
-                return new float3(p1.x, p1.y, math.length(p1to));
-            var p0toProjectedToEdge = math.mul(p0to, edgeDir);
-            if (p0toProjectedToEdge < 0) // p0 is closest
-                return new float3(p0.x, p0.y, math.length(p0to));
-            var point = p0 + edgeDir * p0toProjectedToEdge;
-            var delta = to - point;
-
-            return new float3(point.x, point.y, math.length(delta));
-        }
-
-        private static float2 IntersectionPointRays(float2 ao, float2 ad, float2 bo, float2 bd) {
-            var denom = (ad.x * bd.y - ad.y * bd.x);
-            if (math.abs(denom) <= math.EPSILON) return new float2(math.NAN);
-            var u = (ao.y * bd.x + bd.y * bo.x - bo.y * bd.x - bd.y * ao.x) / denom;
-            return ao + ad * u;
-        }
-
         public void Execute(int i) {
             var totalForce = new float2(0, -gravity * dt);
+            var position = positions[i];
 
             // Getting the position in the grid for this blob
             var gridX = (int) math.floor((positions[i].x + gridSizeX / 2) / cellSide);
@@ -388,10 +366,15 @@ public class Water : MonoBehaviour
                         if (distance <= 0 || distance > forceRadius) {
                             continue;
                         }
-
+                        
                         var direction = -deltaPos / distance;
+                        
+                        if (distance < forceRadius * 0.25) {
+                            position -= direction * forceRadius * 0.25f;
+                        }
+                        
                         var forceAmount01 = math.clamp((forceRadius - distance) / forceRadius, 0, 1);
-                        var force = (direction * math.pow(forceAmount01, 0.5f) * waterForce) * dt;
+                        var force = (direction * forceAmount01 * waterForce) * dt;
 
                         totalForce += force;
                     }
@@ -406,42 +389,55 @@ public class Water : MonoBehaviour
                 velocity.y = -positions[i].y / dt;
             }
 
-            var position = positions[i] + velocity * dt;
-            var newPosition = position;
+            position += velocity * dt;
             var oldPosition = positions[i];
 
             var currentStart = 0;
             hasCollided[i] = 0;
+
+            var minLengthSq = math.INFINITY;
+            var edge0 = float2.zero;
+            var edge1 = float2.zero;
+            var firstIntersection = float2.zero;
             for (var c = 0; c < colliders.Length; c++) {
                 var points = colliders[c];
-                var positionChange = colliderMovement[c];
+                var prevPos = oldPosition + colliderTranslation[c];
                 for (var p = 1; p < points; p++) {
                     var p0 = colliderPoints[currentStart + p - 1];
                     var p1 = colliderPoints[currentStart + p];
 
-                    var dir = math.normalize(newPosition - oldPosition);
-                    var prevPos = oldPosition - dir * ballSize * 0.5f;
-                    var newPos = newPosition + dir * ballSize * 0.5f;
+                    var dir = math.normalize(position - oldPosition);
                     var intersection = SegmentsIntersect(
-                        p0, p1, prevPos, newPos);
+                        p0, p1, prevPos, position);
 
                     if (math.any(math.isnan(intersection)))
                         continue;
 
                     hasCollided[i]++;
-                    var fromIntersectionToNew = newPos - intersection;
-                    var edgeDir = p1 - p0;
-                    var normal = new float2(edgeDir.y, -edgeDir.x);
-                    if (math.dot(normal, fromIntersectionToNew) < 0)
-                        normal *= -1f;
-                    normal = math.normalize(normal);
-                    var pointOutOfCollision = intersection - normal * ballSize;
 
-                    position = pointOutOfCollision;
-                    velocity -= normal * math.dot(velocity, normal);
+                    var lengthSq = math.lengthsq(intersection - prevPos);
+                    if (lengthSq < minLengthSq) {
+                        firstIntersection = intersection;
+                        minLengthSq = lengthSq;
+                        edge0 = p0;
+                        edge1 = p1;
+                    }
                 }
 
                 currentStart += points;
+            }
+
+            if (hasCollided[i] > 0) {
+                var fromIntersectionToNew = position - firstIntersection;
+                var edgeDir = edge1 - edge0;
+                var normal = new float2(edgeDir.y, -edgeDir.x);
+                if (math.dot(normal, fromIntersectionToNew) < 0)
+                    normal *= -1f;
+                normal = math.normalize(normal);
+                var pointOutOfCollision = firstIntersection - normal * ballSize * .5f;
+
+                position = pointOutOfCollision;
+                velocity -= normal * math.dot(velocity, normal);
             }
 
             newVelocities[i] = velocity;
