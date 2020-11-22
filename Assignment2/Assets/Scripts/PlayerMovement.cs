@@ -56,6 +56,7 @@ public class PlayerMovement : MonoBehaviour {
         
 		if(Input.GetKeyDown(jumpKey)){
 			if(!playerInAir){
+				FindObjectOfType<AudioManager>().PlaySound("jump");
 				playerInAir = true;
 				playerRigidBody.AddForce(Vector2.up * playerUpwardsForce);
 			}
@@ -68,6 +69,7 @@ public class PlayerMovement : MonoBehaviour {
 
 	public void Die(){
 		if(!isDead){
+			FindObjectOfType<AudioManager>().PlaySound("death");
 			isDead = true;
 			playerGoLeftSprite.SetActive(false);
 			playerGoRightSprite.SetActive(false);
