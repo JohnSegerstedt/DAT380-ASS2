@@ -8,10 +8,13 @@ using UnityEngine.UI;
 public class WaterCounter : MonoBehaviour
 {
     public WaterDisplay waterDisplay;
-    public Text countDisplay;
+    public Text countDisplayText;
+    public Text countDisplayTextShadow;
     private EdgeCollider2D collider;
     private List<Vector2> normals;
     private float insideFactor;
+	private float timeEmpty = 0f;
+	private float maxTimeEmpty = 1f;
 
     void Awake() {
         collider = GetComponent<EdgeCollider2D>();
@@ -46,9 +49,22 @@ public class WaterCounter : MonoBehaviour
                 }
             }
         }
-
-        insideFactor = inside / (float)total;
-        countDisplay.text = $"{GetPercentageInside()} %";
+		if(timeEmpty <= maxTimeEmpty){
+			insideFactor = inside / (float)total;
+			countDisplayText.text = $"{GetPercentageInside()}%";
+			countDisplayTextShadow.text = $"{GetPercentageInside()}%";
+			if(insideFactor < 0.01){
+				timeEmpty += Time.deltaTime;
+				if(timeEmpty > maxTimeEmpty){
+					FindObjectOfType<GameManagerScript>().SetGameOver();
+					countDisplayText.color = Color.red;
+					countDisplayText.text = "0%";
+					countDisplayTextShadow.text = "0%";
+				}
+			}else{
+				timeEmpty = 0f;
+			}
+		}
     }
 
     private void OnDrawGizmos() {

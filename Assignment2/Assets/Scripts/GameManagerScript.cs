@@ -48,6 +48,8 @@ public class GameManagerScript : MonoBehaviour
 	}
 
 	public void SetLevelComplete(){
+		if(!gameAlive) return;
+		levelComplete = true;
 		gameAlive = false;
 		var score = waterCounter.GetPercentageInside();
 		var text = $"Your score: {score:000}";
@@ -59,6 +61,7 @@ public class GameManagerScript : MonoBehaviour
 	}
 
 	public void SetGameOver(){
+		if(levelComplete) return;
 		gameAlive = false;
 		gameOverUI.SetActive(true);
 	}
