@@ -62,6 +62,7 @@ public class GameManagerScript : MonoBehaviour
 
 	public void SetGameOver(){
 		if(levelComplete) return;
+		FindObjectOfType<PlayerMovement>().MakeSad();
 		gameAlive = false;
 		gameOverUI.SetActive(true);
 	}

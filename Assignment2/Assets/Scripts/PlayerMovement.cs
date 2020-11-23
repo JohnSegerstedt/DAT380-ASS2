@@ -6,6 +6,8 @@ public class PlayerMovement : MonoBehaviour {
 	public GameObject playerGoRightSprite;
 	public GameObject playerGoLeftSprite;
 	public SpriteRenderer playerDeathSprite;
+	public Sprite playerLeftSadSprite;
+	public Sprite playerRightSadSprite;
 
 
 	private float playerSidewaysForce = 1000f;
@@ -76,6 +78,12 @@ public class PlayerMovement : MonoBehaviour {
 			playerDeathSprite.enabled = true;
 			gameManager.SetGameOver();
 		}
+	}
+
+	public void MakeSad(){
+		if(isDead) return;
+		if(playerGoRightSprite.activeInHierarchy)	playerGoRightSprite.GetComponent<SpriteRenderer>().sprite = playerRightSadSprite;
+		else										playerGoLeftSprite.GetComponent<SpriteRenderer>().sprite = playerLeftSadSprite;
 	}
 
 }

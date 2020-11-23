@@ -73,6 +73,10 @@ MonoBehaviour:
   playerGoRightSprite: {fileID: 3859748805735619402}
   playerGoLeftSprite: {fileID: 2138601137136459948}
   playerDeathSprite: {fileID: 3892909173573185301}
+  playerLeftSadSprite: {fileID: 21300000, guid: a397c80a8fe0f41459dc85bfd67fb86b,
+    type: 3}
+  playerRightSadSprite: {fileID: 21300000, guid: 1df2ab5cb74a3df42b6173947d84b2aa,
+    type: 3}
   gameManager: {fileID: 0}
 --- !u!114 &785153415057516775
 MonoBehaviour:
