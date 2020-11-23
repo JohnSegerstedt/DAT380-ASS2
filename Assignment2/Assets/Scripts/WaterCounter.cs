@@ -42,7 +42,7 @@ public class WaterCounter : MonoBehaviour
             for (var i = 1; i < collider.pointCount; i++) {
                 var p0 = collTransform.TransformPoint(points[i]);
                 var fromP0 = blob.transform.position - p0;
-                var fromP02D = new Vector2(fromP0.x, fromP0.y) + normals[i - 1] * .1f;
+                var fromP02D = new Vector2(fromP0.x, fromP0.y) + normals[i - 1] * .2f;
                 if (math.dot(fromP02D, normals[i - 1]) < 0) {
                     inside -= 1;
                     break;

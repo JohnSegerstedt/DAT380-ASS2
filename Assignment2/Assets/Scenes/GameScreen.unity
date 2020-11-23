@@ -3758,8 +3758,8 @@ MonoBehaviour:
     x: 0
     y: -4
   stiffness: 5
-  stiffnessNear: 5
-  restDensity: 0.3
+  stiffnessNear: 15
+  restDensity: 3
   gridHalfSize: {x: 9, y: 5}
 --- !u!114 &1894555975
 MonoBehaviour:
@@ -4306,6 +4306,26 @@ PrefabInstance:
       propertyPath: gameManager
       value: 
       objectReference: {fileID: 2117902322}
+    - target: {fileID: 4719722862509118646, guid: 8b7cf9e5a8cb1fd4ba1d1d33eff04bd3,
+        type: 3}
+      propertyPath: m_Points.Array.data[7].x
+      value: 0.38303158
+      objectReference: {fileID: 0}
+    - target: {fileID: 4719722862509118646, guid: 8b7cf9e5a8cb1fd4ba1d1d33eff04bd3,
+        type: 3}
+      propertyPath: m_Points.Array.data[7].y
+      value: 0.30847636
+      objectReference: {fileID: 0}
+    - target: {fileID: 4719722862509118646, guid: 8b7cf9e5a8cb1fd4ba1d1d33eff04bd3,
+        type: 3}
+      propertyPath: m_Points.Array.data[0].y
+      value: 0.31510332
+      objectReference: {fileID: 0}
+    - target: {fileID: 4719722862509118646, guid: 8b7cf9e5a8cb1fd4ba1d1d33eff04bd3,
+        type: 3}
+      propertyPath: m_Points.Array.data[0].x
+      value: -0.3719003
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8b7cf9e5a8cb1fd4ba1d1d33eff04bd3, type: 3}
 --- !u!1 &1406159243950395186 stripped
