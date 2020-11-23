@@ -296,7 +296,7 @@ public struct ColliderInteraction : IJobParallelFor
             if (math.dot(normal, fromIntersectionToNew) < 0)
                 normal *= -1f;
             normal = math.normalize(normal);
-            var pointOutOfCollision = firstIntersection - normal * 0.01f;
+            var pointOutOfCollision = firstIntersection - normal * 0.02f;
             var vel = normal * math.dot(new float2(waterState.vx[i], waterState.vy[i]), normal) * 1.2f;
 
             waterState.x[i] = pointOutOfCollision.x;
