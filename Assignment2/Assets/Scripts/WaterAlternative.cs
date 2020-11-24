@@ -295,19 +295,12 @@ public struct ColliderInteraction : IJobParallelFor
             // inside collider
             // check if edge collider in the middle
             var fanDir = fansDirections[c];
-            var boxDiagSq = math.distancesq(corner.xy, corner.zw);
-            // choose side (we assume AABB and Axis-Aligned fanDir)
-            var edge = new float4(corner.xw, corner.zw); // top
-            if (fanDir.y < -math.EPSILON) edge = new float4(corner.xy, corner.zy); // bottom
-            else if (fanDir.x > math.EPSILON) edge = new float4(corner.zw, corner.zy); // right
-            else if (fanDir.x < -math.EPSILON) edge = new float4(corner.xy, corner.xw); // left
+            // choose opposite side to fanDir (we assume AABB and Axis-Aligned fanDir)
+            var collision = new float2(oldPosition.x, corner.w); // top
+            if (fanDir.y > math.EPSILON) collision = new float2(oldPosition.x, corner.y); // bottom
+            else if (fanDir.x < -math.EPSILON) collision = new float2(corner.z, oldPosition.y); // right
+            else if (fanDir.x > math.EPSILON) collision = new float2(corner.x, oldPosition.y); // left
             // check dist to box side
-            var collision = SegmentsIntersect(
-                edge.xy,
-                edge.zw,
-                position,
-                position - fanDir * boxDiagSq
-            );
             var dist = math.distance(position, collision);
             var screened = false;
             var accumulated = 0;
@@ -545,25 +538,25 @@ public class WaterAlternative : MonoBehaviour
         }
 
         for (var c = 0; c < fansCorners.Length; c++) {
-            var corners = fansCorners[c];
+            var corner = fansCorners[c];
             Debug.DrawLine(
-                new Vector3(corners.x, corners.y, 0),
-                new Vector3(corners.x, corners.w, 0),
+                new Vector3(corner.x, corner.y, 0),
+                new Vector3(corner.x, corner.w, 0),
                 Color.magenta
             );
             Debug.DrawLine(
-                new Vector3(corners.x, corners.y, 0),
-                new Vector3(corners.z, corners.y, 0),
+                new Vector3(corner.x, corner.y, 0),
+                new Vector3(corner.z, corner.y, 0),
                 Color.magenta
             );
             Debug.DrawLine(
-                new Vector3(corners.z, corners.y, 0),
-                new Vector3(corners.z, corners.w, 0),
+                new Vector3(corner.z, corner.y, 0),
+                new Vector3(corner.z, corner.w, 0),
                 Color.magenta
             );
             Debug.DrawLine(
-                new Vector3(corners.x, corners.w, 0),
-                new Vector3(corners.z, corners.w, 0),
+                new Vector3(corner.x, corner.w, 0),
+                new Vector3(corner.z, corner.w, 0),
                 Color.magenta
             );
         }
