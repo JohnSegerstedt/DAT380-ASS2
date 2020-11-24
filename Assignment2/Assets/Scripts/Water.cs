@@ -76,7 +76,7 @@ public class Water : MonoBehaviour
             collidersPointsNum[c] = points;
             for (var i = 0; i < points; i++) {
                 var collider = _colliders[c];
-                var point = new Vector3(collider.points[i].x, collider.points[i].y, 0);
+                var point = collider.transform.TransformPoint(new Vector3(collider.points[i].x, collider.points[i].y, 0));
                 collidersPoints[collidersPointsAccumulated + i] = new float2(point.x, point.y);
             }
 
@@ -159,11 +159,13 @@ public class Water : MonoBehaviour
         var colliderMovement = new NativeArray<float2>(_colliders.Length, Allocator.TempJob);
         var accumulated = 0;
         for (var i = 0; i < _colliders.Length; i++) {
-            float2 pos = ((float3) _colliders[i].transform.position).xy;
+            var collider = _colliders[i];
+            var pos = ((float3) collider.transform.position).xy;
             colliderMovement[i] = pos - _oldColliderPositions[i];
             _oldColliderPositions[i] = pos;
             for (var j = 0; j < collidersPointsNum[i]; j++) {
-                collidersPoints[accumulated + j] += colliderMovement[i];
+                var point = collider.transform.TransformPoint(collider.points[j]);
+                collidersPoints[accumulated + j] = new float2(point.x, point.y);
             }
 
             accumulated += collidersPointsNum[i];
