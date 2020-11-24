@@ -1,4 +1,6 @@
-﻿using Unity.Burst;
+﻿using System.Collections.Generic;
+using System.Linq;
+using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
@@ -203,11 +205,42 @@ public struct ColliderInteraction : IJobParallelFor
 {
     public WaterState waterState;
 
+    [ReadOnly] public float dt;
+    [ReadOnly] public NativeArray<float4> fansCorners;
+    [ReadOnly] public NativeArray<float2> fansDirections;
     [ReadOnly] public NativeArray<int> colliders;
     [ReadOnly] public NativeArray<float2> colliderPoints;
     [ReadOnly] public NativeArray<float2> colliderTranslation;
 
     // Determines if the lines AB and CD intersect.
+    static bool DoSegmentsIntersect(float2 colliderA, float2 colliderB, float2 blobA, float2 blobB) {
+        var CmP = blobA - colliderA;
+        var r = colliderB - colliderA;
+        var s = blobB - blobA;
+
+        var CmPxr = CmP.x * r.y - CmP.y * r.x;
+        var CmPxs = CmP.x * s.y - CmP.y * s.x;
+        var rxs = r.x * s.y - r.y * s.x;
+
+        if (math.abs(CmPxr) <= math.EPSILON) {
+            // Lines are collinear
+            if (math.dot(blobA - colliderA, blobA - colliderB) < math.EPSILON) {
+                // blobA inside colliderA->colliderB
+                return true;
+            }
+            return math.mul(CmP, colliderA - blobB) < math.EPSILON;
+        }
+
+        if (math.abs(rxs) <= math.EPSILON)
+            return false; // Lines are parallel.
+
+        var rxsr = 1f / rxs;
+        var t = CmPxs * rxsr;
+        var u = CmPxr * rxsr;
+
+        return (t > -math.EPSILON) && (t < 1f + math.EPSILON) && (u > -math.EPSILON) && (u < 1f + math.EPSILON);
+    }
+    // Determines if and where the lines AB and CD intersect.
     static float2 SegmentsIntersect(float2 colliderA, float2 colliderB, float2 blobA, float2 blobB) {
         var CmP = blobA - colliderA;
         var r = colliderB - colliderA;
@@ -256,6 +289,40 @@ public struct ColliderInteraction : IJobParallelFor
         var hasCollided = false;
         var position = new float2(waterState.x[i], waterState.y[i]);
         var oldPosition = new float2(waterState.oldX[i], waterState.oldY[i]);
+
+        for (var c = 0; c < fansCorners.Length; c++) {
+            var corner = fansCorners[c];
+            if (corner.x < position.x && corner.y < position.y && corner.z > position.x && corner.w > position.y) {
+                // inside collider
+                var boxDiag = math.length(corner.zw - corner.xy);
+                // check if edge collider in the middle
+                var fanDir = fansDirections[c];
+                var screened = false;
+                var accumulated = 0;
+                for (var colliderIdx = 0; colliderIdx < colliders.Length; colliderIdx++) {
+                    var points = colliders[colliderIdx];
+                    for (var p = 1; p < points; p++) {
+                        if (DoSegmentsIntersect(
+                            colliderPoints[accumulated + p - 1],
+                            colliderPoints[accumulated + p],
+                            position,
+                            position - fanDir * boxDiag
+                        )) {
+                            screened = true;
+                            break;
+                        }
+                    }
+                    if (screened)
+                        break;
+                    accumulated += points;
+                }
+
+                if (!screened) {
+                    waterState.vx[i] += fanDir.x * 20 * dt;
+                    waterState.vy[i] += fanDir.y * 20 * dt;
+                }
+            }
+        }
 
         var minLengthSq = math.INFINITY;
         var edge0 = float2.zero;
@@ -323,6 +390,8 @@ public class WaterAlternative : MonoBehaviour
     private NativeArray<float2> collidersPoints;
     private NativeArray<int> collidersPointsNum;
     private NativeArray<float2> oldColliderPositions;
+    private NativeArray<float4> fansCorners;
+    private NativeArray<float2> fansDirections;
 
     private NativeArray<int> grid;
 
@@ -339,6 +408,9 @@ public class WaterAlternative : MonoBehaviour
     void Start() {
         waterDisplay = GetComponent<WaterDisplay>();
         colliders = FindObjectsOfType<EdgeCollider2D>();
+        var boxColliders = FindObjectsOfType<BoxCollider2D>();
+        var fans = boxColliders.Where(boxCollider => boxCollider.CompareTag("FanAir")).ToList();
+
         var blobs = waterDisplay.Blobs;
         var waterBlobsNum = blobs.Count;
 
@@ -386,11 +458,27 @@ public class WaterAlternative : MonoBehaviour
             collidersPointsNum[c] = points;
             for (var i = 0; i < points; i++) {
                 var collider = colliders[c];
-                var point = collider.transform.TransformPoint(new Vector3(collider.points[i].x, collider.points[i].y, 0));
+                var point = collider.transform.TransformPoint(
+                    new Vector3(collider.points[i].x, collider.points[i].y, 0));
                 collidersPoints[collidersPointsAccumulated + i] = new float2(point.x, point.y);
             }
 
             collidersPointsAccumulated += points;
+        }
+
+        fansCorners = new NativeArray<float4>(fans.Count, Allocator.Persistent);
+        fansDirections = new NativeArray<float2>(fans.Count, Allocator.Persistent);
+        for (var i = 0; i < fans.Count; i++) {
+            var fan = fans[i];
+            var bounds = fan.bounds;
+            fansCorners[i] = new float4(
+                bounds.min.x,
+                bounds.min.y,
+                bounds.max.x,
+                bounds.max.y
+            );
+            // left because in the prefab the original direction of the air seems to be to the left
+            fansDirections[i] = ((float3) fan.transform.TransformDirection(Vector3.left)).xy;
         }
 
         updateParticles = new UpdateParticles() {
@@ -425,7 +513,9 @@ public class WaterAlternative : MonoBehaviour
         colliderInteraction = new ColliderInteraction() {
             waterState = waterState,
             colliders = collidersPointsNum,
-            colliderPoints = collidersPoints
+            colliderPoints = collidersPoints,
+            fansCorners = fansCorners,
+            fansDirections = fansDirections
         };
     }
 
@@ -451,7 +541,7 @@ public class WaterAlternative : MonoBehaviour
             new Vector3(-gridInfo.halfXSize, gridInfo.halfYSize, 0),
             new Vector3(gridInfo.halfXSize, gridInfo.halfYSize, 0),
             Color.green
-            );
+        );
         Debug.DrawLine(
             new Vector3(gridInfo.halfXSize, gridInfo.halfYSize, 0),
             new Vector3(gridInfo.halfXSize, -gridInfo.halfYSize, 0),
@@ -467,6 +557,7 @@ public class WaterAlternative : MonoBehaviour
     private void FixedUpdate() {
         updateParticles.dt = Time.fixedDeltaTime;
         applyRelaxation.dt = Time.fixedDeltaTime;
+        colliderInteraction.dt = Time.fixedDeltaTime;
 
         var updateHandle = updateParticles.Schedule(waterState.x.Length, 256);
 
@@ -522,5 +613,9 @@ public class WaterAlternative : MonoBehaviour
 
         if (oldColliderPositions.IsCreated)
             oldColliderPositions.Dispose();
+        if (fansCorners.IsCreated)
+            fansCorners.Dispose();
+        if (fansDirections.IsCreated)
+            fansDirections.Dispose();
     }
 }
