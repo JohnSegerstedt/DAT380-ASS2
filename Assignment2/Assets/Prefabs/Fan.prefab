@@ -143,7 +143,7 @@ GameObject:
   - component: {fileID: 3641315481039717447}
   m_Layer: 0
   m_Name: FanAir
-  m_TagString: Untagged
+  m_TagString: FanAir
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

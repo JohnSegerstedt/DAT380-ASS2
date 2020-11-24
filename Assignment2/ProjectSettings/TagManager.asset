@@ -5,6 +5,7 @@ TagManager:
   serializedVersion: 2
   tags:
   - death
+  - FanAir
   layers:
   - Default
   - TransparentFX
