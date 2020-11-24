@@ -223,12 +223,8 @@ public struct ColliderInteraction : IJobParallelFor
         var rxs = r.x * s.y - r.y * s.x;
 
         if (math.abs(CmPxr) <= math.EPSILON) {
-            // Lines are collinear
-            if (math.dot(blobA - colliderA, blobA - colliderB) < math.EPSILON) {
-                // blobA inside colliderA->colliderB
-                return true;
-            }
-            return math.mul(CmP, colliderA - blobB) < math.EPSILON;
+            return ((blobA.x - colliderA.x < 0f) != (blobA.x - colliderB.x < 0f))
+                   || ((blobA.y - colliderA.y < 0f) != (blobA.y - colliderB.y < 0f));
         }
 
         if (math.abs(rxs) <= math.EPSILON)
@@ -240,6 +236,7 @@ public struct ColliderInteraction : IJobParallelFor
 
         return (t > -math.EPSILON) && (t < 1f + math.EPSILON) && (u > -math.EPSILON) && (u < 1f + math.EPSILON);
     }
+
     // Determines if and where the lines AB and CD intersect.
     static float2 SegmentsIntersect(float2 colliderA, float2 colliderB, float2 blobA, float2 blobB) {
         var CmP = blobA - colliderA;
@@ -292,35 +289,50 @@ public struct ColliderInteraction : IJobParallelFor
 
         for (var c = 0; c < fansCorners.Length; c++) {
             var corner = fansCorners[c];
-            if (corner.x < position.x && corner.y < position.y && corner.z > position.x && corner.w > position.y) {
-                // inside collider
-                var boxDiag = math.length(corner.zw - corner.xy);
-                // check if edge collider in the middle
-                var fanDir = fansDirections[c];
-                var screened = false;
-                var accumulated = 0;
-                for (var colliderIdx = 0; colliderIdx < colliders.Length; colliderIdx++) {
-                    var points = colliders[colliderIdx];
-                    for (var p = 1; p < points; p++) {
-                        if (DoSegmentsIntersect(
-                            colliderPoints[accumulated + p - 1],
-                            colliderPoints[accumulated + p],
-                            position,
-                            position - fanDir * boxDiag
-                        )) {
-                            screened = true;
-                            break;
-                        }
-                    }
-                    if (screened)
+            if (!(corner.x < position.x && corner.y < position.y
+                                        && corner.z > position.x && corner.w > position.y))
+                continue;
+            // inside collider
+            // check if edge collider in the middle
+            var fanDir = fansDirections[c];
+            var boxDiagSq = math.distancesq(corner.xy, corner.zw);
+            // choose side (we assume AABB and Axis-Aligned fanDir)
+            var edge = new float4(corner.xw, corner.zw); // top
+            if (fanDir.y < -math.EPSILON) edge = new float4(corner.xy, corner.zy); // bottom
+            else if (fanDir.x > math.EPSILON) edge = new float4(corner.zw, corner.zy); // right
+            else if (fanDir.x < -math.EPSILON) edge = new float4(corner.xy, corner.xw); // left
+            // check dist to box side
+            var collision = SegmentsIntersect(
+                edge.xy,
+                edge.zw,
+                position,
+                position - fanDir * boxDiagSq
+            );
+            var dist = math.distance(position, collision);
+            var screened = false;
+            var accumulated = 0;
+            for (var colliderIdx = 0; colliderIdx < colliders.Length; colliderIdx++) {
+                var points = colliders[colliderIdx];
+                for (var p = 1; p < points; p++) {
+                    if (DoSegmentsIntersect(
+                        colliderPoints[accumulated + p - 1],
+                        colliderPoints[accumulated + p],
+                        oldPosition,
+                        oldPosition - fanDir * dist
+                    )) {
+                        screened = true;
                         break;
-                    accumulated += points;
+                    }
                 }
 
-                if (!screened) {
-                    waterState.vx[i] += fanDir.x * 20 * dt;
-                    waterState.vy[i] += fanDir.y * 20 * dt;
-                }
+                if (screened)
+                    break;
+                accumulated += points;
+            }
+
+            if (!screened) {
+                waterState.vx[i] += fanDir.x * 10 * dt;
+                waterState.vy[i] += fanDir.y * 10 * dt;
             }
         }
 
@@ -530,6 +542,30 @@ public class WaterAlternative : MonoBehaviour
             }
 
             startNum += points;
+        }
+
+        for (var c = 0; c < fansCorners.Length; c++) {
+            var corners = fansCorners[c];
+            Debug.DrawLine(
+                new Vector3(corners.x, corners.y, 0),
+                new Vector3(corners.x, corners.w, 0),
+                Color.magenta
+            );
+            Debug.DrawLine(
+                new Vector3(corners.x, corners.y, 0),
+                new Vector3(corners.z, corners.y, 0),
+                Color.magenta
+            );
+            Debug.DrawLine(
+                new Vector3(corners.z, corners.y, 0),
+                new Vector3(corners.z, corners.w, 0),
+                Color.magenta
+            );
+            Debug.DrawLine(
+                new Vector3(corners.x, corners.w, 0),
+                new Vector3(corners.z, corners.w, 0),
+                Color.magenta
+            );
         }
 
         Debug.DrawLine(
