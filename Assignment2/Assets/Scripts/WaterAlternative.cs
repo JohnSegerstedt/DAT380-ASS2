@@ -390,7 +390,7 @@ public class WaterAlternative : MonoBehaviour
     private ApplyRelaxation applyRelaxation;
     private ColliderInteraction colliderInteraction;
 
-    private WaterDisplay waterDisplay;
+    private IWaterDisplay waterDisplay;
 
     private NativeArray<float2> collidersPoints;
     private NativeArray<int> collidersPointsNum;
