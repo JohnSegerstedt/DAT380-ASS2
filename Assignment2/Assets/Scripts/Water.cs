@@ -4,7 +4,6 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 
-[RequireComponent(typeof(WaterDisplay))]
 public class Water : MonoBehaviour
 {
     [Min(0)] public float gravity = 8;
