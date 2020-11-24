@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using Unity.Mathematics;
 using UnityEditor;
 using UnityEngine;
@@ -7,9 +8,9 @@ using UnityEngine.UI;
 [ExecuteInEditMode]
 public class WaterCounter : MonoBehaviour
 {
-    public WaterDisplay waterDisplay;
     public Text countDisplayText;
     public Text countDisplayTextShadow;
+    private IWaterDisplay waterDisplay;
     private EdgeCollider2D collider;
     private List<Vector2> normals;
     private float insideFactor;
@@ -17,6 +18,14 @@ public class WaterCounter : MonoBehaviour
 	private float maxTimeEmpty = 1f;
 
     void Awake() {
+        var waterDisplays = FindObjectsOfType<MonoBehaviour>()
+            .Where(m => m.enabled)
+            .OfType<IWaterDisplay>();
+        var enumerable = waterDisplays as IWaterDisplay[] ?? waterDisplays.ToArray();
+        if (enumerable.Any()) {
+            waterDisplay = enumerable[0];
+        }
+
         collider = GetComponent<EdgeCollider2D>();
         normals = new List<Vector2>(collider.edgeCount);
         var points = collider.points;
@@ -34,16 +43,15 @@ public class WaterCounter : MonoBehaviour
 
     void Update() {
         if (!Application.isPlaying) return;
-        var total = waterDisplay.Blobs.Count;
+        var total = waterDisplay.BlobsCount;
         var inside = total;
         var points = collider.points;
         var collTransform = collider.transform;
-        foreach (var blob in waterDisplay.Blobs) {
+        foreach (var blob in waterDisplay.Positions) {
             for (var i = 1; i < collider.pointCount; i++) {
-                var p0 = collTransform.TransformPoint(points[i]);
-                var fromP0 = blob.transform.position - p0;
-                var fromP02D = new Vector2(fromP0.x, fromP0.y) + normals[i - 1] * .2f;
-                if (math.dot(fromP02D, normals[i - 1]) < 0) {
+                Vector2 p0 = ((float3)collTransform.TransformPoint(points[i])).xy;
+                var fromP0 = blob - p0 + normals[i - 1] * .2f;
+                if (math.dot(fromP0, normals[i - 1]) < 0) {
                     inside -= 1;
                     break;
                 }

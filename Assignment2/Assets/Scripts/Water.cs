@@ -24,7 +24,7 @@ public class Water : MonoBehaviour
     private Vector2 gridSize;
     private NativeArray<int> grid;
 
-    private WaterDisplay _waterDisplay;
+    private IWaterDisplay _waterDisplay;
     private EdgeCollider2D[] _colliders;
     private NativeArray<uint> hasCollided;
 
@@ -34,8 +34,8 @@ public class Water : MonoBehaviour
     private void Start() {
         _waterDisplay = GetComponent<WaterDisplay>();
         _colliders = FindObjectsOfType<EdgeCollider2D>();
-        var blobs = _waterDisplay.Blobs;
-        var waterBlobsNum = blobs.Count;
+        var blobs = _waterDisplay.InitialPositions;
+        var waterBlobsNum = _waterDisplay.BlobsCount;
 
         velocities = new NativeArray<float2>(waterBlobsNum, Allocator.Persistent);
         positions = new NativeArray<float2>(waterBlobsNum, Allocator.Persistent);
@@ -57,8 +57,7 @@ public class Water : MonoBehaviour
         }
 
         for (var i = 0; i < positions.Length; i++) {
-            var pos = blobs[i].transform.position;
-            positions[i] = new float2(pos.x, pos.y);
+            positions[i] = blobs[i];
             velocities[i] = 0;
         }
 

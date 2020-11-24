@@ -416,8 +416,8 @@ public class WaterAlternative : MonoBehaviour
         var boxColliders = FindObjectsOfType<BoxCollider2D>();
         var fans = boxColliders.Where(boxCollider => boxCollider.CompareTag("FanAir")).ToList();
 
-        var blobs = waterDisplay.Blobs;
-        var waterBlobsNum = blobs.Count;
+        var blobs = waterDisplay.InitialPositions;
+        var waterBlobsNum = waterDisplay.BlobsCount;
 
         waterState = new WaterState() {
             x = new NativeArray<float>(waterBlobsNum, Allocator.Persistent),
@@ -443,10 +443,9 @@ public class WaterAlternative : MonoBehaviour
         grid = new NativeArray<int>(
             gridInfo.xCells * gridInfo.yCells * gridInfo.cellSpace, Allocator.Persistent);
 
-        for (var i = 0; i < blobs.Count; i++) {
-            var pos = blobs[i].transform.position;
-            waterState.oldX[i] = waterState.x[i] = pos.x;
-            waterState.oldY[i] = waterState.y[i] = pos.y;
+        for (var i = 0; i < waterBlobsNum; i++) {
+            waterState.oldX[i] = waterState.x[i] = blobs[i].x;
+            waterState.oldY[i] = waterState.y[i] = blobs[i].y;
         }
 
         var collidersPointsCount = 0;
