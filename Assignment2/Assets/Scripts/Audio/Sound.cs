@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.Audio;
 
+// This is used for representing audio clips
 [System.Serializable]
 public class Sound{
 

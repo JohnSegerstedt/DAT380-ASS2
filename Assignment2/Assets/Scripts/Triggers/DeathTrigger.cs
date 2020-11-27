@@ -2,12 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class deathtrigger : MonoBehaviour {
+public class DeathTrigger : MonoBehaviour {
 
 
 	private void OnTriggerEnter2D(Collider2D collision) {
 		if(collision.tag == "Player"){
-			FindObjectOfType<PlayerMovement>().Die();
+			FindObjectOfType<Player>().Die();
 		}
 	}
 }

@@ -14,6 +14,9 @@ GameObject:
   - component: {fileID: 785153415057516775}
   - component: {fileID: 4719722862509118646}
   - component: {fileID: 3892909173573185301}
+  - component: {fileID: 1406159243950395187}
+  - component: {fileID: 1406159243950395189}
+  - component: {fileID: 1406159243950395188}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -70,13 +73,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1c2885823ed24d646baa362642e1b29b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerGoRightSprite: {fileID: 3859748805735619402}
-  playerGoLeftSprite: {fileID: 2138601137136459948}
-  playerDeathSprite: {fileID: 3892909173573185301}
-  playerLeftSadSprite: {fileID: 21300000, guid: a397c80a8fe0f41459dc85bfd67fb86b,
-    type: 3}
-  playerRightSadSprite: {fileID: 21300000, guid: 1df2ab5cb74a3df42b6173947d84b2aa,
-    type: 3}
+  player: {fileID: 0}
   gameManager: {fileID: 0}
 --- !u!114 &785153415057516775
 MonoBehaviour:
@@ -106,14 +103,14 @@ EdgeCollider2D:
   m_Offset: {x: 0, y: 0}
   m_EdgeRadius: 0
   m_Points:
-  - {x: -0.3510258, y: 0.3051631}
+  - {x: -0.3719003, y: 0.31510332}
   - {x: -0.36457875, y: 0.16032597}
   - {x: -0.2647621, y: 0.01807068}
   - {x: -0.13102576, y: -0.08902163}
   - {x: 0.13644706, y: -0.08902162}
   - {x: 0.26289394, y: 0.018070802}
   - {x: 0.37728938, y: 0.15258147}
-  - {x: 0.34476206, y: 0.30516303}
+  - {x: 0.38303158, y: 0.30847636}
 --- !u!212 &3892909173573185301
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -164,6 +161,51 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
+--- !u!114 &1406159243950395187
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1406159243857084749}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e16765a626fb5c7ccb57313e54451cd8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  countDisplayText: {fileID: 0}
+  countDisplayTextShadow: {fileID: 0}
+--- !u!114 &1406159243950395189
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1406159243857084749}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3f06e54df90e83e48895780bca624b12, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &1406159243950395188
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1406159243857084749}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8af892e29c574af4f814492ea82ae0f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerGoRightSprite: {fileID: 3859748805735619402}
+  playerGoLeftSprite: {fileID: 2138601137136459948}
+  playerDeathSprite: {fileID: 3892909173573185301}
+  playerLeftSadSprite: {fileID: 21300000, guid: a397c80a8fe0f41459dc85bfd67fb86b,
+    type: 3}
+  playerRightSadSprite: {fileID: 21300000, guid: 1df2ab5cb74a3df42b6173947d84b2aa,
+    type: 3}
 --- !u!1 &2138601137136459948
 GameObject:
   m_ObjectHideFlags: 0

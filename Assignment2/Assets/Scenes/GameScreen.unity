@@ -4280,61 +4280,32 @@ PrefabInstance:
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
-    - target: {fileID: 2138601137136459948, guid: 8b7cf9e5a8cb1fd4ba1d1d33eff04bd3,
+    - target: {fileID: 1406159243950395187, guid: 8b7cf9e5a8cb1fd4ba1d1d33eff04bd3,
         type: 3}
-      propertyPath: m_TagString
-      value: Player
-      objectReference: {fileID: 0}
-    - target: {fileID: 3859748805735619402, guid: 8b7cf9e5a8cb1fd4ba1d1d33eff04bd3,
+      propertyPath: countDisplayText
+      value: 
+      objectReference: {fileID: 1063238093}
+    - target: {fileID: 1406159243950395187, guid: 8b7cf9e5a8cb1fd4ba1d1d33eff04bd3,
         type: 3}
-      propertyPath: m_TagString
-      value: Player
-      objectReference: {fileID: 0}
+      propertyPath: countDisplayTextShadow
+      value: 
+      objectReference: {fileID: 389348443}
     - target: {fileID: 4476070570919709209, guid: 8b7cf9e5a8cb1fd4ba1d1d33eff04bd3,
         type: 3}
       propertyPath: gameManager
       value: 
       objectReference: {fileID: 2117902322}
-    - target: {fileID: 4719722862509118646, guid: 8b7cf9e5a8cb1fd4ba1d1d33eff04bd3,
-        type: 3}
-      propertyPath: m_Points.Array.data[7].x
-      value: 0.38303158
-      objectReference: {fileID: 0}
-    - target: {fileID: 4719722862509118646, guid: 8b7cf9e5a8cb1fd4ba1d1d33eff04bd3,
-        type: 3}
-      propertyPath: m_Points.Array.data[7].y
-      value: 0.30847636
-      objectReference: {fileID: 0}
-    - target: {fileID: 4719722862509118646, guid: 8b7cf9e5a8cb1fd4ba1d1d33eff04bd3,
-        type: 3}
-      propertyPath: m_Points.Array.data[0].y
-      value: 0.31510332
-      objectReference: {fileID: 0}
-    - target: {fileID: 4719722862509118646, guid: 8b7cf9e5a8cb1fd4ba1d1d33eff04bd3,
-        type: 3}
-      propertyPath: m_Points.Array.data[0].x
-      value: -0.3719003
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8b7cf9e5a8cb1fd4ba1d1d33eff04bd3, type: 3}
---- !u!1 &1406159243950395186 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 1406159243857084749, guid: 8b7cf9e5a8cb1fd4ba1d1d33eff04bd3,
+--- !u!114 &1406159243950395187 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 1406159243950395187, guid: 8b7cf9e5a8cb1fd4ba1d1d33eff04bd3,
     type: 3}
   m_PrefabInstance: {fileID: 1406159243950395185}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1406159243950395187
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1406159243950395186}
+  m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e16765a626fb5c7ccb57313e54451cd8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  waterDisplay: {fileID: 1894555976}
-  countDisplayText: {fileID: 1063238093}
-  countDisplayTextShadow: {fileID: 389348443}
