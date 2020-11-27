@@ -4,6 +4,10 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 
+[Obsolete("Please, use WaterAlternative instead")]
+/// <summary>
+/// This is the old water implementation, too unstable
+/// </summary>
 public class Water : MonoBehaviour
 {
     [Min(0)] public float gravity = 8;

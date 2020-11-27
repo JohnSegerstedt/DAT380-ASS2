@@ -5,7 +5,14 @@ using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
+//
+// Implementation based on https://peeke.nl/simulating-blobs-of-fluid?utm_campaign=bizarrodevs&utm_medium=web&utm_source=BizarroDevs_55
+// post by Peeke Kuepers
+//
 
+/// <summary>
+/// Water state at each moment of the simulation 
+/// </summary>
 public struct WaterState
 {
     [NativeDisableParallelForRestriction] public NativeArray<float> x;
@@ -17,6 +24,9 @@ public struct WaterState
     public NativeArray<float> p;
     public NativeArray<float> pNear;
 
+    /// <summary>
+    /// Use this method to dispose all the native arrays of the state
+    /// </summary>
     public void Dispose() {
         if (x.IsCreated) x.Dispose();
         if (y.IsCreated) y.Dispose();
@@ -29,6 +39,9 @@ public struct WaterState
     }
 }
 
+/// <summary>
+/// Fixed, uniform grid
+/// </summary>
 public struct GridInfo
 {
     public int xCells;
@@ -39,6 +52,9 @@ public struct GridInfo
     public int cellSpace;
 }
 
+/// <summary>
+/// Updates the particles positions and adds gravity
+/// </summary>
 [BurstCompile(CompileSynchronously = true)]
 public struct UpdateParticles : IJobParallelFor
 {
@@ -59,6 +75,9 @@ public struct UpdateParticles : IJobParallelFor
     }
 }
 
+/// <summary>
+/// Sorts the particles into the grid
+/// </summary>
 [BurstCompile(CompileSynchronously = true)]
 public struct GridSort : IJobParallelFor
 {
@@ -83,7 +102,9 @@ public struct GridSort : IJobParallelFor
     }
 }
 
-
+/// <summary>
+/// Updates the pressures for each particle
+/// </summary>
 [BurstCompile(CompileSynchronously = true)]
 public struct UpdatePressures : IJobParallelFor
 {
@@ -140,6 +161,9 @@ public struct UpdatePressures : IJobParallelFor
     }
 }
 
+/// <summary>
+/// Applies double relaxation
+/// </summary>
 [BurstCompile(CompileSynchronously = true)]
 public struct ApplyRelaxation : IJobParallelFor
 {
@@ -200,6 +224,9 @@ public struct ApplyRelaxation : IJobParallelFor
     }
 }
 
+/// <summary>
+/// Checks for collision with edge colliders and effect of fans
+/// </summary>
 [BurstCompile(CompileSynchronously = true)]
 public struct ColliderInteraction : IJobParallelFor
 {
@@ -448,6 +475,7 @@ public class WaterAlternative : MonoBehaviour
             waterState.oldY[i] = waterState.y[i] = blobs[i].y;
         }
 
+        // Create colliders arrays
         var collidersPointsCount = 0;
         for (var c = 0; c < colliders.Length; c++) {
             collidersPointsCount += colliders[c].pointCount;
@@ -470,6 +498,7 @@ public class WaterAlternative : MonoBehaviour
             collidersPointsAccumulated += points;
         }
 
+        // Fans arrays
         fansCorners = new NativeArray<float4>(fans.Count, Allocator.Persistent);
         fansDirections = new NativeArray<float2>(fans.Count, Allocator.Persistent);
         for (var i = 0; i < fans.Count; i++) {
@@ -485,6 +514,7 @@ public class WaterAlternative : MonoBehaviour
             fansDirections[i] = ((float3) fan.transform.TransformDirection(Vector3.left)).xy;
         }
 
+        // Create kernels
         updateParticles = new UpdateParticles() {
             gravity = gravity,
             waterState = waterState
@@ -621,6 +651,7 @@ public class WaterAlternative : MonoBehaviour
         waterDisplay.UpdateDisplay(waterState.x, waterState.y);
     }
 
+    // Just for debug
     private void CheckNans() {
         for (var i = 0; i < waterState.x.Length; i++) {
             if (math.isnan(waterState.x[i])) {

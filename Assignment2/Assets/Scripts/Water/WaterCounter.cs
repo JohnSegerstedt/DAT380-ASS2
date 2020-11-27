@@ -47,6 +47,9 @@ public class WaterCounter : MonoBehaviour
         var inside = total;
         var points = collider.points;
         var collTransform = collider.transform;
+        // Content is calculated by using the colliders that form the glass as walls,
+        // if the glass is vertically open, particles over the glass count as inside,
+        // which is good because it makes the count more stable
         foreach (var blob in waterDisplay.Positions) {
             for (var i = 1; i < collider.pointCount; i++) {
                 Vector2 p0 = ((float3)collTransform.TransformPoint(points[i])).xy;

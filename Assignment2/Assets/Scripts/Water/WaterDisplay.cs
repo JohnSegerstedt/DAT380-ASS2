@@ -5,15 +5,37 @@ using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
+/// <summary>
+/// Interface for water displays so we can change it in the future easily
+/// </summary>
 public interface IWaterDisplay
 {
+    /// <summary>
+    /// Number of blobs
+    /// </summary>
     int BlobsCount { get; }
+    /// <summary>
+    /// Initial positions of the water blobs
+    /// </summary>
     Vector2[] InitialPositions { get;  }
+    /// <summary>
+    /// Current positions of the water blobs
+    /// </summary>
     Vector2[] Positions { get; }
+    /// <summary>
+    /// Update the display with the updated positions provided
+    /// </summary>
     void UpdateDisplay(NativeArray<float2> positions);
+    /// <summary>
+    /// Update the display with the updated positions provided as x and y
+    /// </summary>
     void UpdateDisplay(NativeArray<float> x, NativeArray<float> y);
 }
 
+/// <summary>
+/// Current implementation of WaterDisplay, it uses a prefab that gets instanced
+/// for every particle (not the most efficient really).
+/// </summary>
 public class WaterDisplay : MonoBehaviour, IWaterDisplay
 {
     public uint2 blobs;
@@ -51,6 +73,9 @@ public class WaterDisplay : MonoBehaviour, IWaterDisplay
 
     public Vector2[] Positions => positions;
 
+    /// <summary>
+    /// Updates the displays given the updated positions
+    /// </summary>
     public void UpdateDisplay(NativeArray<float2> positions) {
         for (var i = 0; i < positions.Length && i < mBlobs.Count; i++) {
             var prev = mBlobs[i].transform.position;
@@ -59,6 +84,9 @@ public class WaterDisplay : MonoBehaviour, IWaterDisplay
         }
     }
     
+    /// <summary>
+    /// Updates the displays given the updated positions
+    /// </summary>
     public void UpdateDisplay(NativeArray<float> x, NativeArray<float> y) {
         for (var i = 0; i < x.Length && i < mBlobs.Count; i++) {
             var prev = mBlobs[i].transform.position;
